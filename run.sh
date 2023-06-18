@@ -2,5 +2,5 @@
 
 mkdir -p cmake/build
 cd cmake/build
-cmake -DCMAKE_PREFIX_PATH=$MY_INSTALL_DIR ../..
+cmake -DCMAKE_PREFIX_PATH=$HOME/.local ../..
 make -j 4

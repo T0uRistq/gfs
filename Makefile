@@ -48,27 +48,12 @@ PROTOS_PATH = ../../protos
 
 vpath %.proto $(PROTOS_PATH)
 
-all: system-check greeter_client greeter_server greeter_async_client greeter_async_client2 greeter_async_server greeter_callback_client greeter_callback_server
+all: greeter_client greeter_server 
 
 greeter_client: gfs.pb.o gfs.grpc.pb.o greeter_client.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 greeter_server: gfs.pb.o gfs.grpc.pb.o greeter_server.o
-	$(CXX) $^ $(LDFLAGS) -o $@
-
-greeter_async_client: gfs.pb.o gfs.grpc.pb.o greeter_async_client.o
-	$(CXX) $^ $(LDFLAGS) -o $@
-
-greeter_async_client2: gfs.pb.o gfs.grpc.pb.o greeter_async_client2.o
-	$(CXX) $^ $(LDFLAGS) -o $@
-
-greeter_async_server: gfs.pb.o gfs.grpc.pb.o greeter_async_server.o
-	$(CXX) $^ $(LDFLAGS) -o $@
-
-greeter_callback_client: gfs.pb.o gfs.grpc.pb.o greeter_callback_client.o
-	$(CXX) $^ $(LDFLAGS) -o $@
-
-greeter_callback_server: gfs.pb.o gfs.grpc.pb.o greeter_callback_server.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 .PRECIOUS: %.grpc.pb.cc
@@ -80,7 +65,7 @@ greeter_callback_server: gfs.pb.o gfs.grpc.pb.o greeter_callback_server.o
 	$(PROTOC) -I $(PROTOS_PATH) --cpp_out=. $<
 
 clean:
-	rm -f *.o *.pb.cc *.pb.h greeter_client greeter_server greeter_async_client greeter_async_client2 greeter_async_server greeter_callback_client greeter_callback_server
+	rm -f *.o *.pb.cc *.pb.h greeter_client greeter_server 
 
 
 # The following is to test your system and ensure a smoother experience.
@@ -100,38 +85,4 @@ ifeq ($(HAS_VALID_PROTOC),true)
 ifeq ($(HAS_PLUGIN),true)
 SYSTEM_OK = true
 endif
-endif
-
-system-check:
-ifneq ($(HAS_VALID_PROTOC),true)
-	@echo " DEPENDENCY ERROR"
-	@echo
-	@echo "You don't have protoc 3.0.0 or newer installed in your path."
-	@echo "Please install an up-to-date version of Google protocol buffers."
-	@echo "You can find it here:"
-	@echo
-	@echo "   https://github.com/protocolbuffers/protobuf/releases"
-	@echo
-	@echo "Here is what I get when trying to evaluate your version of protoc:"
-	@echo
-	-$(PROTOC) --version
-	@echo
-	@echo
-endif
-ifneq ($(HAS_PLUGIN),true)
-	@echo " DEPENDENCY ERROR"
-	@echo
-	@echo "You don't have the grpc c++ protobuf plugin installed in your path."
-	@echo "Please install grpc. You can find it here:"
-	@echo
-	@echo "   https://github.com/grpc/grpc"
-	@echo
-	@echo "Here is what I get when trying to detect if you have the plugin:"
-	@echo
-	-which $(GRPC_CPP_PLUGIN)
-	@echo
-	@echo
-endif
-ifneq ($(SYSTEM_OK),true)
-	@false
 endif
