@@ -17,6 +17,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <memory>
 #include <string>
 
@@ -38,25 +39,82 @@ using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
-using gfs::Greeter;
-using gfs::HelloReply;
-using gfs::HelloRequest;
+using gfs::PingRequest;
+using gfs::PingReply;
+using gfs::ReadChunkRequest;
+using gfs::ReadChunkReply;
+using gfs::WriteChunkRequest;
+using gfs::WriteChunkReply;
+using gfs::GFS;
+using gfs::ErrorCode;
 
 ABSL_FLAG(uint16_t, port, 50051, "Server port for the service");
 
 // Logic and data behind the server's behavior.
-class GreeterServiceImpl final : public Greeter::Service {
-  Status SayHello(ServerContext* context, const HelloRequest* request,
-                  HelloReply* reply) override {
-    std::string prefix("Hello ");
+class GFSServiceImpl final : public GFS::Service {
+public:
+  GFSServiceImpl(std::string path) {
+    this->full_path = path;
+  }
+
+  Status ClientServerPing(ServerContext* context, const PingRequest* request,
+                  PingReply* reply) override {
+    std::string prefix("Ping ");
     reply->set_message(prefix + request->name());
     return Status::OK;
   }
+
+  Status ReadChunk(ServerContext* context, const ReadChunkRequest* request,
+                   ReadChunkReply* reply) override {
+    std::string chunk_data;
+    std::ifstream infile;
+    std::string filename = this->full_path + "/" +
+        std::to_string(request->chunkhandle());
+
+    infile.open(filename.c_str(), std::ios::in);
+    if (!infile) {
+      std::cout << "can't open file for reading: " << filename << std::endl;
+      reply->set_error_code(ErrorCode::FAILED);
+    } else {
+      infile >> chunk_data;
+      infile.close();
+      reply->set_data(chunk_data);
+      reply->set_error_code(ErrorCode::SUCCESS);
+    }
+
+    return Status::OK;
+  }
+
+
+  Status WriteChunk(ServerContext* context, const WriteChunkRequest* request,
+                    WriteChunkReply* reply) override {
+    std::cout << "Got server WriteChunk for chunkhandle = " << \
+              request->chunkhandle() << " and data = " << request->data() << \
+              std::endl;
+
+    std::ofstream outfile;
+    std::string filename = this->full_path + "/" +
+        std::to_string(request->chunkhandle());
+    outfile.open(filename.c_str(), std::ios::out);
+    if (!outfile) {
+      std::cout << "can't open file for writing: " << filename << std::endl;
+      reply->set_error_code(ErrorCode::FAILED);
+    } else {
+      outfile << request->data();
+      outfile.close();
+      reply->set_error_code(ErrorCode::SUCCESS);
+    }
+    return Status::OK;
+  }
+
+private:
+  std::string full_path;
+  
 };
 
-void RunServer(uint16_t port) {
+void RunServer(uint16_t port, std::string path) {
   std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
-  GreeterServiceImpl service;
+  GFSServiceImpl service(path);
 
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -77,6 +135,6 @@ void RunServer(uint16_t port) {
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
-  RunServer(absl::GetFlag(FLAGS_port));
+  RunServer(absl::GetFlag(FLAGS_port), argv[1]);
   return 0;
 }

@@ -1,9 +1,24 @@
 # GFS-like filesystem
 
-Build and install grpc as shown in [C++ Quick Start][].
-Cd into ~/grpc/examples/cpp
-Clone this repo
-Move gfs.protos to ../../protos
-Run shell script to build
+## How to build and run
 
-[++ Quick Start]: https://grpc.io/docs/languages/cpp/quickstart
+Build and install grpc as shown in [C++ Quick Start][].
+
+[C++ Quick Start]: https://grpc.io/docs/languages/cpp/quickstart
+
+### To build
+
+```shell
+cd ~/grpc/examples/cpp
+git clone https://github.com/raja-19/gfs.git
+cd gfs
+cp gfs.proto ../../protos/gfs.proto
+./run.sh
+```
+
+### To run
+
+```shell
+cmake/build/gfs_server <path to dir> 	# runs server
+cmake/build/gfs_client 			# runs client
+```

@@ -48,12 +48,12 @@ PROTOS_PATH = ../../protos
 
 vpath %.proto $(PROTOS_PATH)
 
-all: greeter_client greeter_server 
+all: gfs_client gfs_server 
 
-greeter_client: gfs.pb.o gfs.grpc.pb.o greeter_client.o
+gfs_client: gfs.pb.o gfs.grpc.pb.o gfs_client.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
-greeter_server: gfs.pb.o gfs.grpc.pb.o greeter_server.o
+gfs_server: gfs.pb.o gfs.grpc.pb.o gfs_server.o
 	$(CXX) $^ $(LDFLAGS) -o $@
 
 .PRECIOUS: %.grpc.pb.cc
@@ -65,7 +65,7 @@ greeter_server: gfs.pb.o gfs.grpc.pb.o greeter_server.o
 	$(PROTOC) -I $(PROTOS_PATH) --cpp_out=. $<
 
 clean:
-	rm -f *.o *.pb.cc *.pb.h greeter_client greeter_server 
+	rm -f *.o *.pb.cc *.pb.h gfs_client gfs_server 
 
 
 # The following is to test your system and ensure a smoother experience.
