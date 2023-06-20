@@ -56,9 +56,9 @@ target_link_libraries(gfs_grpc_proto
   ${_GRPC_GRPCPP}
   ${_PROTOBUF_LIBPROTOBUF})
 
-# Targets gfs_(client|server)
+# Targets gfs_(client|server|master)
 foreach(_target
-  gfs_client gfs_server)
+  gfs_client gfs_server gfs_master)
   add_executable(${_target} "${_target}.cc")
   target_link_libraries(${_target}
     gfs_grpc_proto

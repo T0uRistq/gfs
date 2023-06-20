@@ -151,7 +151,11 @@ int main(int argc, char** argv) {
       grpc::CreateChannel(target_str, grpc::InsecureChannelCredentials()));
   std::string user("GFS");
   std::string reply = gfs_client.ClientServerPing(user);
-  std::cout << "GFS received: " << reply << std::endl;
+  std::cout << "Client received: " << reply << std::endl;
 
+  std::string rpc_result = gfs_client.WriteChunk(0, "new#data" +
+                                                   std::to_string(0));
+  std::string data = gfs_client.ReadChunk(0);
+  std::cout << "Client received chunk data: " << data << std::endl;
   return 0;
 }

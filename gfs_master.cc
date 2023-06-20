@@ -39,81 +39,36 @@ using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
 using grpc::Status;
-using gfs::PingRequest;
-using gfs::PingReply;
-using gfs::ReadChunkRequest;
-using gfs::ReadChunkReply;
-using gfs::WriteChunkRequest;
-using gfs::WriteChunkReply;
-using gfs::GFS;
+using gfs::GetChunkhandleRequest;
+using gfs::GetChunkhandleReply;
+using gfs::GFSMaster;
+using gfs::ListFilesRequest;
+using gfs::ListFilesReply;
 using gfs::ErrorCode;
 
-ABSL_FLAG(uint16_t, port, 50051, "Server port for the service");
+ABSL_FLAG(uint16_t, port, 50052, "Master port for the service");
 
 // Logic and data behind the server's behavior.
-class GFSServiceImpl final : public GFS::Service {
-public:
-  GFSServiceImpl(std::string path) {
-    this->full_path = path;
-  }
+class GFSMasterImpl final : public GFSMaster::Service {
+ public:
+  GFSMasterImpl(std::string storage_path) {}
 
-  Status ClientServerPing(ServerContext* context, const PingRequest* request,
-                  PingReply* reply) override {
-    std::string prefix("Ping ");
-    reply->set_message(prefix + request->name());
+  ~GFSMasterImpl() {}
+
+  Status GetChunkhandle(ServerContext* context, const GetChunkhandleRequest* request,
+                        GetChunkhandleReply* reply) override {
     return Status::OK;
   }
 
-  Status ReadChunk(ServerContext* context, const ReadChunkRequest* request,
-                   ReadChunkReply* reply) override {
-    std::string chunk_data;
-    std::ifstream infile;
-    std::string filename = this->full_path + "/" +
-        std::to_string(request->chunkhandle());
-
-    infile.open(filename.c_str(), std::ios::in);
-    if (!infile) {
-      std::cout << "can't open file for reading: " << filename << std::endl;
-      reply->set_error_code(ErrorCode::FAILED);
-    } else {
-      infile >> chunk_data;
-      infile.close();
-      reply->set_data(chunk_data);
-      reply->set_error_code(ErrorCode::SUCCESS);
-    }
-
+  Status ListFiles(ServerContext* context, const ListFilesRequest* request,
+                   ListFilesReply* reply) override {
     return Status::OK;
   }
-
-
-  Status WriteChunk(ServerContext* context, const WriteChunkRequest* request,
-                    WriteChunkReply* reply) override {
-    std::cout << "Got server WriteChunk for chunkhandle = " << \
-              request->chunkhandle() << " and data = " << request->data() << \
-              std::endl;
-
-    std::ofstream outfile;
-    std::string filename = this->full_path + "/" +
-        std::to_string(request->chunkhandle());
-    outfile.open(filename.c_str(), std::ios::out);
-    if (!outfile) {
-      std::cout << "can't open file for writing: " << filename << std::endl;
-      reply->set_error_code(ErrorCode::FAILED);
-    } else {
-      outfile << request->data();
-      outfile.close();
-      reply->set_error_code(ErrorCode::SUCCESS);
-    }
-    return Status::OK;
-  }
-
-private:
-  std::string full_path;
 };
 
 void RunServer(uint16_t port, std::string path) {
   std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
-  GFSServiceImpl service(path);
+  GFSMasterImpl service(path);
 
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -125,7 +80,7 @@ void RunServer(uint16_t port, std::string path) {
   builder.RegisterService(&service);
   // Finally assemble the server.
   std::unique_ptr<Server> server(builder.BuildAndStart());
-  std::cout << "Server listening on " << server_address << std::endl;
+  std::cout << "Master listening on " << server_address << std::endl;
 
   // Wait for the server to shutdown. Note that some other thread must be
   // responsible for shutting down the server for this call to ever return.
