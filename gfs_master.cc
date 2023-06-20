@@ -57,11 +57,13 @@ class GFSMasterImpl final : public GFSMaster::Service {
 
   Status GetChunkhandle(ServerContext* context, const GetChunkhandleRequest* request,
                         GetChunkhandleReply* reply) override {
+    // TODO: implement db manager, and handle query
     return Status::OK;
   }
 
   Status ListFiles(ServerContext* context, const ListFilesRequest* request,
                    ListFilesReply* reply) override {
+    // TODO: implement db manager, and handle query
     return Status::OK;
   }
 };
@@ -89,6 +91,7 @@ void RunServer(uint16_t port, std::string path) {
 
 int main(int argc, char** argv) {
   absl::ParseCommandLine(argc, argv);
+  // TODO: should probably handle signals?
   RunServer(absl::GetFlag(FLAGS_port), argv[1]);
   return 0;
 }
