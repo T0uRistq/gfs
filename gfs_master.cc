@@ -44,7 +44,6 @@ using gfs::GetChunkhandleReply;
 using gfs::GFSMaster;
 using gfs::ListFilesRequest;
 using gfs::ListFilesReply;
-using gfs::ErrorCode;
 
 ABSL_FLAG(uint16_t, port, 50052, "Master port for the service");
 
@@ -55,7 +54,8 @@ class GFSMasterImpl final : public GFSMaster::Service {
 
   ~GFSMasterImpl() {}
 
-  Status GetChunkhandle(ServerContext* context, const GetChunkhandleRequest* request,
+  Status GetChunkhandle(ServerContext* context,
+                        const GetChunkhandleRequest* request,
                         GetChunkhandleReply* reply) override {
     // TODO: implement db manager, and handle query
     return Status::OK;
@@ -66,6 +66,9 @@ class GFSMasterImpl final : public GFSMaster::Service {
     // TODO: implement db manager, and handle query
     return Status::OK;
   }
+
+ private:
+  // some db manager, maybe sqlite
 };
 
 void RunServer(uint16_t port, std::string path) {

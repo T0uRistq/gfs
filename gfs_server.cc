@@ -46,19 +46,20 @@ using gfs::ReadChunkReply;
 using gfs::WriteChunkRequest;
 using gfs::WriteChunkReply;
 using gfs::GFS;
-using gfs::ErrorCode;
 
 ABSL_FLAG(uint16_t, port, 50051, "Server port for the service");
 
+const int kChunkSize = 1 << 26; // bytes
+
 // Logic and data behind the server's behavior.
 class GFSServiceImpl final : public GFS::Service {
-public:
+ public:
   GFSServiceImpl(std::string path) {
     this->full_path = path;
   }
 
   Status ClientServerPing(ServerContext* context, const PingRequest* request,
-                  PingReply* reply) override {
+                          PingReply* reply) override {
     std::string prefix("Ping ");
     reply->set_message(prefix + request->name());
     return Status::OK;
@@ -66,48 +67,69 @@ public:
 
   Status ReadChunk(ServerContext* context, const ReadChunkRequest* request,
                    ReadChunkReply* reply) override {
-    std::string chunk_data;
-    std::ifstream infile;
+    int chunkhandle = request->chunkhandle();
+    int offset = request->offset();
+    int length = request->length();
+    std::string chunk_data(length, '0');
     std::string filename = this->full_path + "/" +
-        std::to_string(request->chunkhandle());
+                           std::to_string(request->chunkhandle());
 
-    infile.open(filename.c_str(), std::ios::in);
-    if (!infile) {
-      std::cout << "can't open file for reading: " << filename << std::endl;
-      reply->set_error_code(ErrorCode::FAILED);
+    if (length + offset > kChunkSize) {
+      std::cout << "Can't read chunk_size<" << length + offset << std::endl;
+      reply->set_bytes_read(0);
+      return Status::OK;
+    }
+
+    std::ifstream infile(filename.c_str(), std::ios::in | std::ios::binary);
+    if (!infile.is_open()) {
+      std::cout << "Can't open file for reading: " << filename << std::endl;
+      reply->set_bytes_read(0);
     } else {
-      infile >> chunk_data;
+      infile.seekg(offset, std::ios::beg);
+      infile.read(&chunk_data[0], length);
       infile.close();
+      reply->set_bytes_read(infile.gcount());
       reply->set_data(chunk_data);
-      reply->set_error_code(ErrorCode::SUCCESS);
     }
 
     return Status::OK;
   }
-
 
   Status WriteChunk(ServerContext* context, const WriteChunkRequest* request,
                     WriteChunkReply* reply) override {
-    std::cout << "Got server WriteChunk for chunkhandle = " << \
-              request->chunkhandle() << " and data = " << request->data() << \
-              std::endl;
+    std::cout << "Got server WriteChunk for chunkhandle="
+              << request->chunkhandle() << " and data=" << request->data()
+              << std::endl;
+    // TODO: handle this critical section
 
-    std::ofstream outfile;
+    int chunkhandle = request->chunkhandle();
+    int offset = request->offset();
+    std::string data = request->data();
+    int length = data.length();
     std::string filename = this->full_path + "/" +
-        std::to_string(request->chunkhandle());
-    outfile.open(filename.c_str(), std::ios::out);
-    if (!outfile) {
-      std::cout << "can't open file for writing: " << filename << std::endl;
-      reply->set_error_code(ErrorCode::FAILED);
-    } else {
-      outfile << request->data();
-      outfile.close();
-      reply->set_error_code(ErrorCode::SUCCESS);
+                           std::to_string(request->chunkhandle());
+
+    if (length + offset > kChunkSize) {
+      std::cout << "Can't write chunk_size<" << length + offset << std::endl;
+      reply->set_bytes_written(0);
+      return Status::OK;
     }
+
+    std::ofstream outfile(filename.c_str(), std::ios::out | std::ios::binary);
+    if (!outfile.is_open()) {
+      std::cout << "Can't open file for writing: " << filename << std::endl;
+      reply->set_bytes_written(0);
+    } else {
+      outfile.seekp(offset, std::ios::beg);
+      outfile.write(data.c_str(), length);
+      outfile.close();
+      reply->set_bytes_written(length);
+    }
+
     return Status::OK;
   }
 
-private:
+ private:
   std::string full_path;
 };
 
