@@ -1,0 +1,97 @@
+// Copyright 2015 gRPC authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.gfs";
+option java_outer_classname = "HelloWorldProto";
+option objc_class_prefix = "HLW";
+
+package gfs;
+
+// The GFS service definition
+service GFS {
+  // Read data
+  rpc ReadChunk (ReadChunkRequest) returns (ReadChunkReply) {}
+  // Write data
+  rpc WriteChunk (WriteChunkRequest) returns (WriteChunkReply) {}
+  // Sends a ping
+  rpc ClientServerPing (PingRequest) returns (PingReply) {}
+}
+
+
+// The request message containing the user's name.
+message PingRequest {
+  string name = 1;
+}
+
+// The response message containing the greeting
+message PingReply {
+  string message = 1;
+}
+
+// Read Chunk Request
+message ReadChunkRequest {
+  int64 chunkhandle = 1;
+  int64 offset = 2;
+  int64 length = 3;
+}
+
+// Write Chunk Request
+message WriteChunkRequest {
+  int64 chunkhandle = 1;
+  string data = 2;
+  int64 offset = 3;
+}
+
+// Read Chunk Reply
+message ReadChunkReply {
+  string data = 1;
+  int64 bytes_read = 2;
+}
+
+// Write Chunk Reply
+message WriteChunkReply {
+  int64 bytes_written = 1;
+}
+
+service GFSMaster {
+  // List all files with filename matching a certain prefix.
+  rpc ListFiles (ListFilesRequest) returns (ListFilesReply) {}
+  // For a given filename and chunk index, returns the chunk handle and locations of replicas.
+  rpc GetChunkhandle (GetChunkhandleRequest) returns (GetChunkhandleReply) {}
+}
+
+message GetChunkhandleRequest {
+  string filename = 1;
+  int64 chunk_index = 2;
+}
+
+message GetChunkhandleReply {
+  int64 chunkhandle = 1;
+}
+
+message ListFilesRequest {
+  string prefix = 1;
+}
+
+message FileMetadata {
+  string filename = 1;
+  int64 num_chunks = 2;
+}
+
+message ListFilesReply {
+  repeated FileMetadata files = 1;
+}
