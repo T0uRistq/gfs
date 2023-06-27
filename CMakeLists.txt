@@ -68,3 +68,7 @@ foreach(_target
     ${_GRPC_GRPCPP}
     ${_PROTOBUF_LIBPROTOBUF})
 endforeach()
+
+# sqlite3
+add_library(sqlite3 sqlite3.c)
+target_link_libraries(gfs_master sqlite3)

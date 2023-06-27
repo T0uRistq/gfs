@@ -37,10 +37,10 @@ ABSL_FLAG(std::string, target2, "localhost:50052", "Master address");
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
-using gfs::GetChunkhandleRequest;
-using gfs::GetChunkhandleReply;
-using gfs::ListFilesRequest;
-using gfs::ListFilesReply;
+using gfs::FindLeaseHolderRequest;
+using gfs::FindLeaseHolderReply;
+using gfs::FindPathRequest;
+using gfs::FindPathReply;
 using gfs::PingRequest;
 using gfs::PingReply;
 using gfs::ReadChunkRequest;
@@ -60,18 +60,11 @@ class GFSClient {
   // Assembles the client's payload, sends it and presents the response back
   // from the server.
   std::string ClientServerPing(const std::string& user) {
-    // Data we are sending to the server.
     PingRequest request;
     request.set_name(user);
 
-    // Container for the data we expect from the server.
     PingReply reply;
-
-    // Context for the client. It could be used to convey extra information to
-    // the server and/or tweak certain RPC behaviors.
     ClientContext context;
-
-    // The actual RPC.
     Status status = stub_->ClientServerPing(&context, request, &reply);
 
     // Act upon its status.
@@ -84,23 +77,15 @@ class GFSClient {
     }
   }
 
-  // Client ReadChunk implementation
   std::string ReadChunk(const int chunkhandle, const int offset,
                         const int length) {
-    // Data we are sending to the server.
     ReadChunkRequest request;
     request.set_chunkhandle(chunkhandle);
     request.set_offset(offset);
     request.set_length(length);
 
-    // Container for the data we expect from the server.
     ReadChunkReply reply;
-
-    // Context for the client. It could be used to convey extra information to
-    // the server and/or tweak certain RPC behaviors.
     ClientContext context;
-
-    // The actual RPC.
     Status status = stub_->ReadChunk(&context, request, &reply);
 
     // Act upon its status.
@@ -114,22 +99,15 @@ class GFSClient {
     }
   }
   
-  // Client WriteChunk implementation
   std::string WriteChunk(const int chunkhandle, const std::string data,
                          const int offset) {
-    // Data we are sending to the server.
     WriteChunkRequest request;
     request.set_chunkhandle(chunkhandle);
     request.set_data(data);
+    request.set_offset(offset);
 
-    // Container for the data we expect from the server.
     WriteChunkReply reply;
-
-    // Context for the client. It could be used to convey extra information to
-    // the server and/or tweak certain RPC behaviors.
     ClientContext context;
-
-    // The actual RPC.
     Status status = stub_->WriteChunk(&context, request, &reply);
 
     // Act upon its status.
@@ -142,17 +120,17 @@ class GFSClient {
     }
   }
 
-    // Client GetChunkhandle implementation
-  void GetChunkhandle(const std::string& filename, int64_t chunk_id) {
-    GetChunkhandleRequest request;
+  void FindLeaseHolder(const std::string& filename, int64_t chunk_id) {
+    FindLeaseHolderRequest request;
     request.set_filename(filename);
     request.set_chunk_index(chunk_id);
 
-    GetChunkhandleReply reply;
+    FindLeaseHolderReply reply;
     ClientContext context;
-    Status status = stub_master_->GetChunkhandle(&context, request, &reply);
+    Status status = stub_master_->FindLeaseHolder(&context, request, &reply);
+
     if (status.ok()) {
-      std::cout << "GetChunkhandle file " << filename
+      std::cout << "FindLeaseHolder file " << filename
                 << " chunk id " << chunk_id
                 << " got chunkhandle " << reply.chunkhandle() << std::endl;
     } else {
@@ -161,18 +139,18 @@ class GFSClient {
     }
   }
 
-  // Client ListFiles implementation
-  void ListFiles(const std::string& prefix) {
-    ListFilesRequest request;
+  void FindPath(const std::string& prefix) {
+    FindPathRequest request;
     request.set_prefix(prefix);
 
-    ListFilesReply reply;
+    FindPathReply reply;
     ClientContext context;
-    Status status = stub_master_->ListFiles(&context, request, &reply);
+    Status status = stub_master_->FindPath(&context, request, &reply);
+
     if (status.ok()) {
       for (const auto& file_metadata : reply.files()) {
-        std::cout << "ListFiles filename " << file_metadata.filename()
-                  << std::endl;
+        std::cout << "FindPath filename "
+                  << file_metadata.filename() << std::endl;
       }
     } else {
       std::cout << status.error_code() << ": " << status.error_message()
@@ -201,11 +179,13 @@ int main(int argc, char** argv) {
   std::string reply = gfs_client.ClientServerPing(user);
   std::cout << "Client received: " << reply << std::endl;
 
-  std::string data("new data" + std::to_string(0));
-  std::string rpc_result = gfs_client.WriteChunk(0, data, 0);
+  gfs_client.FindLeaseHolder("a/file.txt", 0);
+  std::string data("this is file 1");
+  std::string rpc_result = gfs_client.WriteChunk(1, data, 0);
   reply = gfs_client.ReadChunk(0, 0, data.length());
   std::cout << "Client received chunk data: " << reply << std::endl;
-  // Test Master
-  gfs_client.GetChunkhandle("test", 0);
+
+  gfs_client.FindLeaseHolder("a/b.txt", 0);
+  gfs_client.FindPath("a");
   return 0;
 }

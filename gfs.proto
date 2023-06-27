@@ -21,77 +21,123 @@ option objc_class_prefix = "HLW";
 
 package gfs;
 
-// The GFS service definition
 service GFS {
-  // Read data
+  // Client -> Chunkserver
   rpc ReadChunk (ReadChunkRequest) returns (ReadChunkReply) {}
-  // Write data
   rpc WriteChunk (WriteChunkRequest) returns (WriteChunkReply) {}
-  // Sends a ping
   rpc ClientServerPing (PingRequest) returns (PingReply) {}
+
+  // Master -> Chunkserver
+  rpc RemoveChunks (RemoveChunksRequest) returns (RemoveChunksReply) {}
 }
 
-
-// The request message containing the user's name.
 message PingRequest {
   string name = 1;
 }
 
-// The response message containing the greeting
 message PingReply {
   string message = 1;
 }
 
-// Read Chunk Request
 message ReadChunkRequest {
   int64 chunkhandle = 1;
   int64 offset = 2;
   int64 length = 3;
 }
 
-// Write Chunk Request
+message ReadChunkReply {
+  string data = 1;
+  int64 bytes_read = 2;
+}
+
 message WriteChunkRequest {
   int64 chunkhandle = 1;
   string data = 2;
   int64 offset = 3;
 }
 
-// Read Chunk Reply
-message ReadChunkReply {
-  string data = 1;
-  int64 bytes_read = 2;
-}
-
-// Write Chunk Reply
 message WriteChunkReply {
   int64 bytes_written = 1;
 }
 
-service GFSMaster {
-  // List all files with filename matching a certain prefix.
-  rpc ListFiles (ListFilesRequest) returns (ListFilesReply) {}
-  // For a given filename and chunk index, returns the chunk handle and locations of replicas.
-  rpc GetChunkhandle (GetChunkhandleRequest) returns (GetChunkhandleReply) {}
+message RemoveChunksRequest {
+  // List of chunkhandles to remove.
+  repeated int64 chunkhandles = 1;
 }
 
-message GetChunkhandleRequest {
+message RemoveChunksReply {}
+
+service GFSMaster {
+  // Client -> Master
+  // List all files with matching prefix
+  rpc FindPath (FindPathRequest) returns (FindPathReply) {}
+  // For a given filename and chunk index
+  // returns the chunk handle and locations of replicas
+  rpc FindLocations (FindLocationsRequest) returns (FindLocationsReply) {}
+  // For a given filename and chunk index
+  // returns the chunk handle and locations of replicas
+  rpc FindLeaseHolder (FindLeaseHolderRequest) returns (FindLeaseHolderReply) {}
+  rpc MoveFile (MoveFileRequest) returns (MoveFileReply) {}
+  rpc RemoveFile (RemoveFileRequest) returns (RemoveFileReply) {}
+
+  // Chunkserver -> Master RPCs
+  // Chunkserver should periodically ping master
+  rpc HeartBeat (HeartBeatRequest) returns (HeartBeatReply) {}
+}
+
+message FindPathRequest {
+  string prefix = 1;
+}
+
+message FindPathReply {
+  message File {
+    string filename = 1;
+    int64 num_chunks = 2;
+  }
+  repeated File files = 1;
+}
+
+message FindLocationsRequest {
   string filename = 1;
   int64 chunk_index = 2;
 }
 
-message GetChunkhandleReply {
+message FindLocationsReply {
   int64 chunkhandle = 1;
+  repeated string locations = 2;
 }
 
-message ListFilesRequest {
-  string prefix = 1;
-}
-
-message FileMetadata {
+message FindLeaseHolderRequest {
   string filename = 1;
-  int64 num_chunks = 2;
+  int64 chunk_index = 2;
 }
 
-message ListFilesReply {
-  repeated FileMetadata files = 1;
+message FindLeaseHolderReply {
+  int64 chunkhandle = 1;
+  repeated string locations = 2;
+  string primary_location = 3;
 }
+
+message MoveFileRequest {
+  string old_filename = 1;
+  string new_filename = 2;
+}
+
+message MoveFileReply {}
+
+message RemoveFileRequest {
+  string filename = 1;
+}
+
+message RemoveFileReply {}
+
+message HeartBeatRequest {
+  message ChunkInfo {
+    int64 chunkhandle = 1;
+  }
+  // All chunks stored in chunkserver.
+  repeated ChunkInfo chunks = 1;
+  string location = 2;
+}
+
+message HeartBeatReply {}
