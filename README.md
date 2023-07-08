@@ -12,13 +12,15 @@ Build and install grpc as shown in [C++ Quick Start][].
 cd ~/grpc/examples/cpp
 git clone https://github.com/raja-19/gfs.git
 cd gfs
-cp gfs.proto ../../protos/gfs.proto
 ./run.sh
 ```
 
 ### To run
 
 ```shell
-cmake/build/gfs_server <path to dir> 	# runs server
-cmake/build/gfs_client 			# runs client
+cmake/build/gfs_master --path <path to db>                        # runs master
+cmake/build/gfs_server --dir <path to dir> --port <port number>   # runs server
+        ..
+cmake/build/gfs_client                                            # runs client
 ```
+Use ```gfs_(master/client/sever) --help``` to see details.

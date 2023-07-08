@@ -25,18 +25,14 @@ service GFS {
   // Client -> Chunkserver
   rpc ReadChunk (ReadChunkRequest) returns (ReadChunkReply) {}
   rpc WriteChunk (WriteChunkRequest) returns (WriteChunkReply) {}
-  rpc ClientServerPing (PingRequest) returns (PingReply) {}
+  rpc PushData (PushDataRequest) returns (PushDataReply) {}
+  rpc Append (AppendRequest) returns (AppendReply) {}
 
   // Master -> Chunkserver
   rpc RemoveChunks (RemoveChunksRequest) returns (RemoveChunksReply) {}
-}
 
-message PingRequest {
-  string name = 1;
-}
-
-message PingReply {
-  string message = 1;
+  // Chunkserver -> Chunkserver
+  rpc SerializedWrite (SerializedWriteRequest) returns (SerializedWriteReply) {}
 }
 
 message ReadChunkRequest {
@@ -52,11 +48,43 @@ message ReadChunkReply {
 
 message WriteChunkRequest {
   int64 chunkhandle = 1;
-  string data = 2;
-  int64 offset = 3;
+  int64 offset = 2;
+  repeated string locations = 3;
+  // TODO: use string instead of int64_t for uuid
+  int64 uuid = 4;
 }
 
 message WriteChunkReply {
+  int64 bytes_written = 1;
+}
+
+message AppendRequest {
+  int64 chunkhandle = 1;
+  int64 length = 2;
+  repeated string locations = 3;
+  int64 uuid = 4;
+}
+
+message AppendReply {
+  int64 offset = 1;
+  int64 bytes_written = 2;
+}
+
+message PushDataRequest {
+  string data = 1;
+  int64 uuid = 2;
+}
+
+message PushDataReply {}
+
+message SerializedWriteRequest {
+  int64 chunkhandle = 1;
+  int64 offset = 2;
+  bool padded_chunk = 3;
+  int64 uuid = 4;
+}
+
+message SerializedWriteReply {
   int64 bytes_written = 1;
 }
 
@@ -74,11 +102,12 @@ service GFSMaster {
   // For a given filename and chunk index
   // returns the chunk handle and locations of replicas
   rpc FindLocations (FindLocationsRequest) returns (FindLocationsReply) {}
-  // For a given filename and chunk index
-  // returns the chunk handle and locations of replicas
+  // FindLocations
+  // creates chunk if not exist
   rpc FindLeaseHolder (FindLeaseHolderRequest) returns (FindLeaseHolderReply) {}
   rpc MoveFile (MoveFileRequest) returns (MoveFileReply) {}
   rpc RemoveFile (RemoveFileRequest) returns (RemoveFileReply) {}
+  rpc GetFileLength (GetFileLengthRequest) returns (GetFileLengthReply) {}
 
   // Chunkserver -> Master RPCs
   // Chunkserver should periodically ping master
@@ -92,7 +121,6 @@ message FindPathRequest {
 message FindPathReply {
   message File {
     string filename = 1;
-    int64 num_chunks = 2;
   }
   repeated File files = 1;
 }
@@ -130,6 +158,14 @@ message RemoveFileRequest {
 }
 
 message RemoveFileReply {}
+
+message GetFileLengthRequest {
+  string filename = 1;
+}
+
+message GetFileLengthReply {
+  int64 num_chunks = 1;
+}
 
 message HeartBeatRequest {
   message ChunkInfo {

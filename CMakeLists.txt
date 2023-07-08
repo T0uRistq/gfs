@@ -24,7 +24,7 @@ project(GFS C CXX)
 include(../cmake/common.cmake)
 
 # Proto file
-get_filename_component(gfs_proto "../../protos/gfs.proto" ABSOLUTE)
+get_filename_component(gfs_proto "gfs.proto" ABSOLUTE)
 get_filename_component(gfs_proto_path "${gfs_proto}" PATH)
 
 # Generated sources
